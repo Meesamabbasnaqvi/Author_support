@@ -1144,6 +1144,7 @@ router.post("/:id/draft", requireAuth, requireAdmin, async (req, res) => {
         status: true,
         category: true,
         priority: true,
+        authorId: true,
         author: {
           select: {
             name: true, // Only name; no email, phone, or bank details
@@ -1151,6 +1152,7 @@ router.post("/:id/draft", requireAuth, requireAdmin, async (req, res) => {
         },
         book: {
           select: {
+            id: true,
             title: true,
             isbn: true,
             status: true,
@@ -1209,27 +1211,82 @@ router.post("/:id/draft", requireAuth, requireAdmin, async (req, res) => {
 
     const startTime = Date.now();
 
+    let book = ticket.book;
+    let authorBooks: Array<{
+      id: number;
+      title: string;
+      isbn: string | null;
+      status: string;
+      mrp: any;
+      totalCopiesSold: number;
+      royaltyPending: any;
+      royaltyPaid: any;
+      lastRoyaltyPayoutDate: Date | null;
+    }> = [];
+
+    // If author didn't link a specific book when submitting, find books from their catalog
+    if (!book) {
+      authorBooks = await prisma.book.findMany({
+        where: { authorId: ticket.authorId },
+        select: {
+          id: true,
+          title: true,
+          isbn: true,
+          status: true,
+          mrp: true,
+          totalCopiesSold: true,
+          royaltyPending: true,
+          royaltyPaid: true,
+          lastRoyaltyPayoutDate: true,
+        },
+        orderBy: { createdAt: "desc" },
+      });
+
+      if (authorBooks.length > 0) {
+        const textToSearch = [
+          ticket.subject,
+          ticket.description,
+          ...ticket.messages.map((m) => m.content),
+        ].join(" ").toLowerCase();
+
+        // 1. Check if the author named one of their books in the message
+        const matched = authorBooks.find((b) => textToSearch.includes(b.title.toLowerCase()));
+
+        // 2. If inquiring about payments, prioritize book with pending royalty
+        const withPending = authorBooks.find((b) => Number(b.royaltyPending || 0) > 0);
+
+        book = matched || (ticket.category === "ROYALTY_PAYMENTS" && withPending ? withPending : authorBooks[0]!);
+      }
+    }
+
     // Prepare verified server facts
-    const overdueDays = ticket.book ? getRoyaltyOverdueDays(ticket.book) : 0;
-    const isOverdue = ticket.book ? isRoyaltyOverdue(ticket.book) : false;
-    const pendingAmount = ticket.book?.royaltyPending ? Number(ticket.book.royaltyPending) : 0;
-    const paidAmount = ticket.book?.royaltyPaid ? Number(ticket.book.royaltyPaid) : 0;
+    const overdueDays = book ? getRoyaltyOverdueDays(book) : 0;
+    const isOverdue = book ? isRoyaltyOverdue(book) : false;
+    const pendingAmount = book?.royaltyPending ? Number(book.royaltyPending) : 0;
+    const paidAmount = book?.royaltyPaid ? Number(book.royaltyPaid) : 0;
 
     const serverFacts: Array<{ label: string; value: string }> = [
       { label: "Ticket ID", value: `#${ticket.id}` },
       { label: "Author Name", value: ticket.author.name },
-      { label: "Book Title", value: ticket.book?.title ?? "General Account" },
-      { label: "Book Status", value: ticket.book?.status ?? "N/A" },
-      { label: "ISBN", value: ticket.book?.isbn ?? "N/A" },
+      { label: "Book Title", value: book?.title ?? "General Account" },
+      { label: "Book Status", value: book?.status ?? "N/A" },
+      { label: "ISBN", value: book?.isbn ?? "N/A" },
       { label: "Royalty Pending", value: `₹${pendingAmount.toFixed(2)}` },
       { label: "Royalty Paid", value: `₹${paidAmount.toFixed(2)}` },
       { label: "Payout Overdue", value: isOverdue ? `Yes (${overdueDays} days)` : "No" },
     ];
 
-    if (ticket.book?.lastRoyaltyPayoutDate) {
+    if (authorBooks.length > 1) {
+      serverFacts.push({
+        label: "Other Books by Author",
+        value: authorBooks.filter((b) => b.id !== book?.id).map((b) => `"${b.title}" (ISBN: ${b.isbn ?? "N/A"})`).join(", "),
+      });
+    }
+
+    if (book?.lastRoyaltyPayoutDate) {
       serverFacts.push({
         label: "Last Payout Date",
-        value: new Date(ticket.book.lastRoyaltyPayoutDate).toISOString().split("T")[0]!,
+        value: new Date(book.lastRoyaltyPayoutDate).toISOString().split("T")[0]!,
       });
     }
 
@@ -1256,7 +1313,7 @@ router.post("/:id/draft", requireAuth, requireAdmin, async (req, res) => {
       samples: kb.samples,
       serverFacts,
       messages: formattedMessages,
-      ticket,
+      ticket: { ...ticket, book },
     });
 
 
