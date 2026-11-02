@@ -218,13 +218,24 @@ export default function AdminTicketPage() {
         </div>
       )}
 
-      <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_300px]">
-        <div className="flex min-h-[420px] flex-col">
-          <div className="flex-1 space-y-6">
-            <Card>
+      <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_320px]">
+        {/* Left Column: Sticky Chat Pane */}
+        <div className="flex flex-col min-h-[480px] xl:sticky xl:top-6 xl:h-[calc(100vh-3.5rem)]">
+          <div className="card flex flex-1 flex-col min-h-0 overflow-hidden shadow-xs">
+            <div className="flex items-center justify-between border-b border-line px-5 py-3.5 bg-surface/80 shrink-0">
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" aria-hidden />
+                <h2 className="text-sm font-semibold text-ink">Conversation</h2>
+              </div>
+              <span className="text-xs text-muted">
+                {t.messages?.length ?? 0} {t.messages?.length === 1 ? "message" : "messages"}
+              </span>
+            </div>
+            <div className="flex-1 overflow-y-auto p-5">
               <Thread messages={t.messages} viewer="ADMIN" authorName={t.authorName} />
-            </Card>
+            </div>
           </div>
+
           <ReplyComposer
             key={`${t.id}-${latestAuthorId}`}
             ticketId={t.id}

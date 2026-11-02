@@ -60,7 +60,7 @@ export function ReplyComposer({ ticketId, draft, draftLoading, locked }: Props) 
   const canSubmit = body.trim().length > 0 && !hasUnresolvedPlaceholder && !send.isPending && !locked;
 
   return (
-    <div className="sticky bottom-4 mt-6">
+    <div className="sticky bottom-4 xl:static mt-3.5 shrink-0">
       {draftLoading && (
         <p className="mb-1.5 flex items-center gap-1.5 text-xs text-muted animate-pulse">
           <Sparkles className="h-3 w-3 text-accent" aria-hidden /> Drafting reply…
