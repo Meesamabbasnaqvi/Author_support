@@ -4,6 +4,7 @@
   "private": true,
   "description": "Author Support & Communication Portal Root Workspace",
   "scripts": {
+    "start": "npm run start --prefix author-api",
     "dev:api": "npm run dev --prefix author-api",
     "dev:web": "npm run dev --prefix author-web",
     "seed": "npm run seed --prefix author-api",
