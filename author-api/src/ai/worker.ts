@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { prisma } from "../lib/prisma.js";
 import type { LlmClient } from "./llm.js";
 import { getGeminiClient } from "./geminiClient.js";
+import { FakeClient } from "./fakeClient.js";
 import { getRoutingSummary } from "./kb.js";
 import { buildClassificationPrompt } from "./prompts.js";
 import { applyAiClassification, logAiCall } from "./classify.js";
@@ -276,7 +277,9 @@ export async function processClaimedTicket(
  */
 export async function pollAndProcessPending(
   batchSize = 5,
-  client: LlmClient = getGeminiClient()
+  client: LlmClient = process.env.USE_FAKE_AI === "true" || process.env.GEMINI_API_KEY === "mock"
+    ? new FakeClient()
+    : getGeminiClient()
 ): Promise<number> {
   if (isWorkerPaused()) return 0;
   if (await isDailyCapReached()) return 0;
@@ -300,7 +303,9 @@ export async function pollAndProcessPending(
  */
 export function startWorker(
   intervalMs = 5000,
-  client: LlmClient = getGeminiClient()
+  client: LlmClient = process.env.USE_FAKE_AI === "true" || process.env.GEMINI_API_KEY === "mock"
+    ? new FakeClient()
+    : getGeminiClient()
 ): () => void {
   let isRunning = true;
   let isProcessing = false;

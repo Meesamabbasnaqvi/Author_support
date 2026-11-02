@@ -9,7 +9,6 @@ import express from "express";
 import { randomUUID } from "node:crypto";
 import helmet from "helmet";
 import cors from "cors";
-import path from "node:path";
 import { uploadMiddleware } from "./middleware/upload.js";
 import { storage } from "./lib/storage.js";
 

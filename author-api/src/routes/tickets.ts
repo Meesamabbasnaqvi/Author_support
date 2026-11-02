@@ -1260,11 +1260,18 @@ router.post("/:id/draft", requireAuth, requireAdmin, async (req, res) => {
     });
 
 
-    const client =
-      process.env.USE_FAKE_AI === "true" || process.env.GEMINI_API_KEY === "mock"
-        ? new FakeClient()
-        : getGeminiClient();
-    const rawDraft = await client.draft(prompt);
+    let rawDraft;
+    try {
+      const client =
+        process.env.USE_FAKE_AI === "true" || process.env.GEMINI_API_KEY === "mock"
+          ? new FakeClient()
+          : getGeminiClient();
+      rawDraft = await client.draft(prompt);
+    } catch (llmError) {
+      console.warn(`Gemini call failed for ticket #${ticketId}, falling back to fake AI:`, llmError);
+      const fallbackClient = new FakeClient();
+      rawDraft = await fallbackClient.draft(prompt);
+    }
 
     // Run factual verifier against server facts, KB constants, and author-stated text
     const verified = verifyDraft({

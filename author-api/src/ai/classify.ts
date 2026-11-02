@@ -4,6 +4,7 @@ import type { TicketCategory, TicketPriority, LlmClient } from "./llm.js";
 import { getRoutingSummary } from "./kb.js";
 import { buildClassificationPrompt } from "./prompts.js";
 import { getGeminiClient } from "./geminiClient.js";
+import { FakeClient } from "./fakeClient.js";
 import { DAILY_AI_CAP } from "./constants.js";
 import type { AiCallType, AiCallStatus, Prisma } from "../../generated/prisma/client.js";
 
@@ -139,7 +140,9 @@ export async function applyAiClassification(
  */
 export async function classifyTicket(
   ticketId: number,
-  client: LlmClient = getGeminiClient(),
+  client: LlmClient = process.env.USE_FAKE_AI === "true" || process.env.GEMINI_API_KEY === "mock"
+    ? new FakeClient()
+    : getGeminiClient(),
   options?: { signal?: AbortSignal }
 ): Promise<void> {
   const startTime = Date.now();
