@@ -1,5 +1,5 @@
 import type {
-  AiDraft, AttachmentItem, AuthorSummary, Book, Category, InternalNote, Me, Priority,
+  AiDraft, AttachmentItem, AuthorBookSummary, AuthorSummary, Book, Category, InternalNote, Me, Priority,
   TicketDetail, TicketListItem, TicketStatus,
 } from "./types";
 
@@ -37,7 +37,16 @@ type BackendTicket = {
   aiPriority: Priority | null; aiStatus: "PENDING" | "DONE" | "FAILED";
   aiConfidence: number | null; aiReason: string | null;
   createdAt: string; updatedAt: string;
-  author: { name: string; email: string; authorId: string };
+  author: {
+    id?: number;
+    name: string;
+    email: string;
+    authorId?: string;
+    phone?: string | null;
+    city?: string | null;
+    joinedDate?: string | null;
+    books?: AuthorBookSummary[];
+  };
   book: { id: number; title: string } | null;
   assignedAdmin: { email: string } | null;
   authorLastReadAt?: string | null;
@@ -103,7 +112,16 @@ const mapTicket = (ticket: BackendTicket): TicketDetail => ({
   aiCategory: ticket.aiCategory ?? undefined,
   aiPriority: ticket.aiPriority ?? undefined,
   bookTitle: ticket.book?.title, authorName: ticket.author.name,
-  author: { name: ticket.author.name, email: ticket.author.email },
+  author: {
+    id: ticket.author.id,
+    name: ticket.author.name,
+    email: ticket.author.email,
+    authorId: ticket.author.authorId,
+    phone: ticket.author.phone,
+    city: ticket.author.city,
+    joinedDate: ticket.author.joinedDate,
+    books: ticket.author.books ?? [],
+  },
   statusAudits: ticket.statusAudits,
   fieldAudits: ticket.fieldAudits,
   createdAt: ticket.createdAt, updatedAt: ticket.updatedAt,

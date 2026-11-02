@@ -271,6 +271,33 @@ router.get("/", requireAuth, ticketReadLimiter, async (req, res) => {
 const createMessageSchema = z.object({
   content: z.string().trim().min(1).max(5000),
 });
+
+const ticketDetailAuthorSelect = {
+  id: true,
+  name: true,
+  email: true,
+  authorId: true,
+  phone: true,
+  city: true,
+  joinedDate: true,
+  books: {
+    select: {
+      id: true,
+      bookId: true,
+      title: true,
+      isbn: true,
+      genre: true,
+      status: true,
+      mrp: true,
+      royaltyPending: true,
+      royaltyPaid: true,
+      lastRoyaltyPayoutDate: true,
+      totalCopiesSold: true,
+    },
+    orderBy: { createdAt: "desc" as const },
+  },
+};
+
 // When an author opens their ticket, their authorLastReadAt is updated to now().
 router.get("/:id", requireAuth, ticketReadLimiter, async (req, res) => {
   const authReq = req as AuthenticatedRequest;
@@ -283,7 +310,7 @@ router.get("/:id", requireAuth, ticketReadLimiter, async (req, res) => {
     const ticket = await prisma.ticket.findUnique({
       where: { id: ticketId },
       include: {
-        author: { select: { id: true, name: true, email: true, authorId: true } },
+        author: { select: ticketDetailAuthorSelect },
         book: { select: { id: true, title: true, royaltyPending: true, lastRoyaltyPayoutDate: true } },
         messages: {
           orderBy: { createdAt: "asc" },
@@ -699,7 +726,7 @@ export async function updateTicketStatus(
     const updated = await tx.ticket.findUnique({
       where: { id: ticketId },
       include: {
-        author: true,
+        author: { select: ticketDetailAuthorSelect },
         book: true,
         assignedAdmin: {
           select: { id: true, email: true },
@@ -839,7 +866,7 @@ export async function updateTicketPriority(
     const freshTicket = await prisma.ticket.findUnique({
       where: { id: ticketId },
       include: {
-        author: { select: { id: true, name: true, email: true, authorId: true } },
+        author: { select: ticketDetailAuthorSelect },
         book: { select: { id: true, title: true, royaltyPending: true, lastRoyaltyPayoutDate: true } },
         assignedAdmin: { select: { email: true } },
       },
@@ -879,7 +906,7 @@ export async function updateTicketPriority(
   const freshTicket = await prisma.ticket.findUnique({
     where: { id: ticketId },
     include: {
-      author: { select: { id: true, name: true, email: true, authorId: true } },
+      author: { select: ticketDetailAuthorSelect },
       book: { select: { id: true, title: true, royaltyPending: true, lastRoyaltyPayoutDate: true } },
       assignedAdmin: { select: { email: true } },
     },
@@ -1003,7 +1030,7 @@ export async function updateTicketCategory(
     const freshTicket = await prisma.ticket.findUnique({
       where: { id: ticketId },
       include: {
-        author: { select: { id: true, name: true, email: true, authorId: true } },
+        author: { select: ticketDetailAuthorSelect },
         book: { select: { id: true, title: true, royaltyPending: true, lastRoyaltyPayoutDate: true } },
         assignedAdmin: { select: { email: true } },
       },
@@ -1042,7 +1069,7 @@ export async function updateTicketCategory(
   const freshTicket = await prisma.ticket.findUnique({
     where: { id: ticketId },
     include: {
-      author: { select: { id: true, name: true, email: true, authorId: true } },
+      author: { select: ticketDetailAuthorSelect },
       book: { select: { id: true, title: true, royaltyPending: true, lastRoyaltyPayoutDate: true } },
       assignedAdmin: { select: { email: true } },
     },

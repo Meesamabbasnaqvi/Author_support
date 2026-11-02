@@ -124,13 +124,39 @@ export interface TicketFieldAuditItem {
   admin: { email: string; author?: { name: string } | null };
 }
 
+export interface AuthorBookSummary {
+  id: number;
+  bookId: string;
+  title: string;
+  isbn?: string | null;
+  genre?: string | null;
+  status: string;
+  mrp?: number | string | null;
+  royaltyPending?: number | string | null;
+  royaltyPaid?: number | string | null;
+  lastRoyaltyPayoutDate?: string | null;
+  totalCopiesSold?: number;
+}
+
+export interface AuthorProfileSummary {
+  id?: number;
+  name: string;
+  email: string;
+  authorId?: string;
+  phone?: string | null;
+  city?: string | null;
+  joinedDate?: string | null;
+  bankDetailsStatus?: string;
+  books?: AuthorBookSummary[];
+}
+
 export interface TicketDetail extends TicketListItem {
   description: string;
   authorName: string;
   messages: TicketMessage[];
   aiCategory?: Category;
   aiPriority?: Priority;
-  author: { name: string; email: string; bankDetailsStatus?: string };
+  author: AuthorProfileSummary;
   statusAudits?: TicketStatusAuditItem[];
   fieldAudits?: TicketFieldAuditItem[];
 }

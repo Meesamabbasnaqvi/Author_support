@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, CheckCircle2, History } from "lucide-react";
+import { ArrowLeft, Check, CheckCircle2, Copy, History, Mail, MapPin, Phone } from "lucide-react";
 import { api } from "../../api/client";
 import type { Category, Priority, TicketStatus } from "../../api/types";
 import { Card, ErrorBox, LoadingRows, StatusBadge } from "../../components/ui";
@@ -9,6 +9,7 @@ import { Thread } from "../../components/Thread";
 import { PriorityControl } from "../../components/PriorityControl";
 import { ReplyComposer } from "../../components/ReplyComposer";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
+import { NotesCard } from "../../components/NotesCard";
 import { useAuth } from "../../lib/auth";
 import {
   categoryLabel,
@@ -35,6 +36,13 @@ interface PendingChange {
   apply: (reason?: string) => void;
 }
 
+function formatRupees(amount?: number | string | null): string {
+  if (amount == null) return "₹0.00";
+  const num = typeof amount === "number" ? amount : parseFloat(amount);
+  if (isNaN(num)) return "₹0.00";
+  return `₹${num.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
 export default function AdminTicketPage() {
   const { id } = useParams();
   const ticketId = Number(id);
@@ -46,6 +54,13 @@ export default function AdminTicketPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showAuditModal, setShowAuditModal] = useState(false);
   const [auditTab, setAuditTab] = useState<"status" | "classification">("status");
+  const [copiedBook, setCopiedBook] = useState<string | null>(null);
+
+  const handleCopyBookTitle = (title: string) => {
+    navigator.clipboard.writeText(title);
+    setCopiedBook(title);
+    setTimeout(() => setCopiedBook(null), 2000);
+  };
 
   const ticket = useQuery({
     queryKey: ["ticket", "admin", ticketId],
@@ -378,10 +393,156 @@ export default function AdminTicketPage() {
             </div>
           </Card>
 
-          {/* Card 3: Author */}
-          <Card title="Author">
-            <p className="font-medium">{t.author.name}</p>
+          {/* Card 3: Author & Books Catalog */}
+          <Card
+            title="Author & Catalog"
+            action={
+              t.author.books && t.author.books.length > 0 ? (
+                <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-semibold text-accent">
+                  {t.author.books.length} {t.author.books.length === 1 ? "book" : "books"}
+                </span>
+              ) : null
+            }
+          >
+            {/* Author Contact Info */}
+            <div className="space-y-2 border-b border-border/50 pb-4 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-sm text-ink">{t.author.name}</span>
+                {t.author.authorId && (
+                  <span className="font-mono text-[11px] text-muted bg-surface px-1.5 py-0.5 rounded border border-border/50">
+                    {t.author.authorId}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-1.5 text-muted">
+                <Mail className="h-3.5 w-3.5 shrink-0 text-subtle" />
+                <a href={`mailto:${t.author.email}`} className="hover:text-accent hover:underline truncate">
+                  {t.author.email}
+                </a>
+              </div>
+              {t.author.phone && (
+                <div className="flex items-center gap-1.5 text-muted">
+                  <Phone className="h-3.5 w-3.5 shrink-0 text-subtle" />
+                  <span>{t.author.phone}</span>
+                </div>
+              )}
+              {t.author.city && (
+                <div className="flex items-center gap-1.5 text-muted">
+                  <MapPin className="h-3.5 w-3.5 shrink-0 text-subtle" />
+                  <span>{t.author.city}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Books List */}
+            <div className="pt-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted">
+                  Author's Books
+                </h3>
+              </div>
+
+              {(!t.author.books || t.author.books.length === 0) ? (
+                <p className="text-xs text-muted italic py-1">
+                  No books linked to this author profile.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {t.author.books.map((book) => {
+                    const isTicketBook =
+                      (t.bookTitle && book.title.trim().toLowerCase() === t.bookTitle.trim().toLowerCase()) ||
+                      (t.book?.id && book.id === t.book.id);
+                    const pendingAmount = Number(book.royaltyPending || 0);
+                    const paidAmount = Number(book.royaltyPaid || 0);
+
+                    return (
+                      <div
+                        key={book.id || book.bookId}
+                        className={`rounded-lg border p-3 text-xs transition ${
+                          isTicketBook
+                            ? "border-accent/50 bg-accent/5 shadow-xs"
+                            : "border-border/60 bg-surface/40 hover:border-border"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-semibold text-ink text-[13px] leading-snug">
+                                {book.title}
+                              </span>
+                              {isTicketBook && (
+                                <span className="rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                                  This ticket
+                                </span>
+                              )}
+                            </div>
+                            <div className="mt-1 flex items-center gap-2 flex-wrap">
+                              <span className="font-mono text-[11px] text-muted">
+                                ISBN: {book.isbn || "Pending"}
+                              </span>
+                              {book.status && (
+                                <span className="font-sans font-medium uppercase text-[10px] tracking-wide text-ink/70 bg-line/60 px-1.5 py-0.5 rounded">
+                                  {book.status}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleCopyBookTitle(book.title)}
+                            className="shrink-0 p-1.5 rounded hover:bg-canvas text-muted hover:text-ink transition"
+                            title="Copy book title to clipboard"
+                          >
+                            {copiedBook === book.title ? (
+                              <Check className="h-3.5 w-3.5 text-emerald-600" />
+                            ) : (
+                              <Copy className="h-3.5 w-3.5" />
+                            )}
+                          </button>
+                        </div>
+
+                        {/* Royalty & Sales Details */}
+                        <div className="mt-2.5 grid grid-cols-2 gap-2 border-t border-border/40 pt-2 text-[11px]">
+                          <div>
+                            <span className="text-muted block text-[10px]">Pending Royalty</span>
+                            <span
+                              className={`font-semibold ${
+                                pendingAmount > 0 ? "text-amber-600 dark:text-amber-400" : "text-ink"
+                              }`}
+                            >
+                              {formatRupees(pendingAmount)}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-muted block text-[10px]">Total Paid</span>
+                            <span className="font-medium text-ink">{formatRupees(paidAmount)}</span>
+                          </div>
+                          {book.totalCopiesSold !== undefined && (
+                            <div>
+                              <span className="text-muted block text-[10px]">Copies Sold</span>
+                              <span className="font-medium text-ink">{book.totalCopiesSold} units</span>
+                            </div>
+                          )}
+                          {book.lastRoyaltyPayoutDate && (
+                            <div>
+                              <span className="text-muted block text-[10px]">Last Payout</span>
+                              <span className="font-medium text-ink">
+                                {dateShort(book.lastRoyaltyPayoutDate)}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </Card>
+
+          {/* Card 4: Team Internal Notes */}
+          <NotesCard ticketId={t.id} />
         </aside>
       </div>
 
