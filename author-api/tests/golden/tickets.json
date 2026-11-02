@@ -1,0 +1,58 @@
+[
+  {
+    "id": 1,
+    "subject": "Overdue quarterly royalty payout",
+    "description": "I sold 150 copies last quarter and haven't received my royalty payout yet. The 45-day window has passed.",
+    "expectedCategory": "ROYALTY_PAYMENTS",
+    "expectedPriority": "CRITICAL",
+    "isOverduePayout": true,
+    "isWrongIsbn": false
+  },
+  {
+    "id": 2,
+    "subject": "Wrong ISBN linked on Amazon listing",
+    "description": "My book physical copy has ISBN 978-1-23-456789-0, but Amazon shows 978-9-87-654321-0 and links to a different book.",
+    "expectedCategory": "ISBN_METADATA",
+    "expectedPriority": "HIGH",
+    "isOverduePayout": false,
+    "isWrongIsbn": true
+  },
+  {
+    "id": 3,
+    "subject": "Defective author copies received with blurry printing",
+    "description": "I received my 20 author copies and the cover text is blurry and several pages are misaligned.",
+    "expectedCategory": "PRINTING_QUALITY",
+    "expectedPriority": "MEDIUM",
+    "isOverduePayout": false,
+    "isWrongIsbn": false
+  },
+  {
+    "id": 4,
+    "subject": "Book showing Currently Unavailable on Flipkart",
+    "description": "My live book is showing as Currently Unavailable on Flipkart store. Sales are blocked.",
+    "expectedCategory": "DISTRIBUTION_AVAILABILITY",
+    "expectedPriority": "HIGH",
+    "isOverduePayout": false,
+    "isWrongIsbn": false
+  },
+  {
+    "id": 5,
+    "subject": "Typesetting delay in production",
+    "description": "My unreleased book has been stuck in typesetting for 3 weeks. When will it move to proofreading?",
+    "expectedCategory": "BOOK_STATUS_PRODUCTION",
+    "expectedPriority": "MEDIUM",
+    "isOverduePayout": false,
+    "isWrongIsbn": false,
+    "bookStatus": "In production"
+  },
+  {
+    "id": 6,
+    "subject": "How do I update author bio and description?",
+    "description": "Can I update my author biography and description for platforms after publication?",
+    "expectedCategory": "GENERAL_INQUIRY",
+    "expectedPriority": "MEDIUM",
+    "isOverduePayout": false,
+    "isWrongIsbn": false
+  }
+]
+
