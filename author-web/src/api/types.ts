@@ -147,6 +147,7 @@ export interface AuthorProfileSummary {
   city?: string | null;
   joinedDate?: string | null;
   bankDetailsStatus?: string;
+  totalBooks?: number;
   books?: AuthorBookSummary[];
 }
 

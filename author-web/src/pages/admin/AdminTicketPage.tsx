@@ -9,7 +9,6 @@ import { Thread } from "../../components/Thread";
 import { PriorityControl } from "../../components/PriorityControl";
 import { ReplyComposer } from "../../components/ReplyComposer";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
-import { NotesCard } from "../../components/NotesCard";
 import { useAuth } from "../../lib/auth";
 import {
   categoryLabel,
@@ -55,6 +54,14 @@ export default function AdminTicketPage() {
   const [showAuditModal, setShowAuditModal] = useState(false);
   const [auditTab, setAuditTab] = useState<"status" | "classification">("status");
   const [copiedBook, setCopiedBook] = useState<string | null>(null);
+  const [showAllBooks, setShowAllBooks] = useState(false);
+
+  const allBooksQuery = useQuery({
+    queryKey: ["author-books", ticketId],
+    queryFn: () => api.authorBooks(ticketId),
+    enabled: showAllBooks && Number.isFinite(ticketId),
+    staleTime: 60_000,
+  });
 
   const handleCopyBookTitle = (title: string) => {
     navigator.clipboard.writeText(title);
@@ -110,6 +117,11 @@ export default function AdminTicketPage() {
   if (ticket.isError && !ticket.data) return <ErrorBox message="This ticket could not be found." />;
   const t = ticket.data;
   if (!t) return null;
+
+  const totalBooks = t.author.totalBooks ?? t.author.books?.length ?? 0;
+  const displayedBooks = showAllBooks
+    ? (allBooksQuery.data ?? t.author.books ?? [])
+    : (t.author.books ?? []);
 
   const assignedToMe = t.assignedAdminName === me?.email || t.assignedAdminName === me?.name;
   const categoryNote =
@@ -408,9 +420,9 @@ export default function AdminTicketPage() {
           <Card
             title="Author & Catalog"
             action={
-              t.author.books && t.author.books.length > 0 ? (
+              totalBooks > 0 ? (
                 <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-semibold text-accent">
-                  {t.author.books.length} {t.author.books.length === 1 ? "book" : "books"}
+                  {totalBooks} {totalBooks === 1 ? "book" : "books"}
                 </span>
               ) : null
             }
@@ -449,17 +461,37 @@ export default function AdminTicketPage() {
             <div className="pt-4">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-muted">
-                  Author's Books
+                  {showAllBooks ? `All Books (${displayedBooks.length})` : "Latest Book"}
                 </h3>
+                {totalBooks > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllBooks(!showAllBooks)}
+                    disabled={allBooksQuery.isLoading}
+                    className="text-xs font-medium text-accent hover:underline disabled:opacity-50"
+                  >
+                    {allBooksQuery.isLoading
+                      ? "Loading…"
+                      : showAllBooks
+                      ? "Show latest only"
+                      : `View all (${totalBooks})`}
+                  </button>
+                )}
               </div>
 
-              {(!t.author.books || t.author.books.length === 0) ? (
+              {allBooksQuery.isLoading && showAllBooks && (
+                <div className="py-4 text-center text-xs text-muted animate-pulse">
+                  Loading full catalog ({totalBooks} books)…
+                </div>
+              )}
+
+              {(!displayedBooks || displayedBooks.length === 0) ? (
                 <p className="text-xs text-muted italic py-1">
                   No books linked to this author profile.
                 </p>
               ) : (
                 <div className="space-y-3">
-                  {t.author.books.map((book) => {
+                  {displayedBooks.map((book) => {
                     const isTicketBook =
                       (t.bookTitle && book.title.trim().toLowerCase() === t.bookTitle.trim().toLowerCase()) ||
                       (t.book?.id && book.id === t.book.id);
@@ -547,13 +579,23 @@ export default function AdminTicketPage() {
                       </div>
                     );
                   })}
+
+                  {!showAllBooks && totalBooks > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllBooks(true)}
+                      disabled={allBooksQuery.isLoading}
+                      className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium text-accent hover:bg-canvas transition disabled:opacity-50"
+                    >
+                      {allBooksQuery.isLoading
+                        ? "Loading books…"
+                        : `View all ${totalBooks} books`}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
           </Card>
-
-          {/* Card 4: Team Internal Notes */}
-          <NotesCard ticketId={t.id} />
         </aside>
       </div>
 

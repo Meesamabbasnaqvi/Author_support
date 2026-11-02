@@ -1,4 +1,3 @@
-import { useEffect, useRef } from "react";
 import type { TicketMessage } from "../api/types";
 import { timeAgo } from "../lib/labels";
 import { Avatar } from "./ui";
@@ -18,12 +17,6 @@ interface Props {
 
 // Chat layout: the viewer's own messages sit on the right, the other side on the left.
 export function Thread({ messages, viewer, authorName }: Props) {
-  const endRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length]);
-
   if (messages.length === 0) {
     return <p className="py-8 text-center text-sm text-muted">No messages yet.</p>;
   }
@@ -109,7 +102,6 @@ export function Thread({ messages, viewer, authorName }: Props) {
           </li>
         );
       })}
-      <div ref={endRef} aria-hidden />
     </ol>
   );
 }

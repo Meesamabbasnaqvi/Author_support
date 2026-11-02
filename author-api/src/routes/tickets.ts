@@ -280,7 +280,11 @@ const ticketDetailAuthorSelect = {
   phone: true,
   city: true,
   joinedDate: true,
+  _count: {
+    select: { books: true },
+  },
   books: {
+    take: 1,
     select: {
       id: true,
       bookId: true,
@@ -383,6 +387,58 @@ router.get("/:id", requireAuth, ticketReadLimiter, async (req, res) => {
   } catch (error) {
     console.error("Failed to fetch ticket:", error);
     return res.status(500).json({ error: "Failed to fetch ticket" });
+  }
+});
+
+// Lazy-load all books for the author of a specific ticket on demand
+router.get("/:id/author-books", requireAuth, async (req, res) => {
+  const authReq = req as AuthenticatedRequest;
+  if (!authReq.user) return res.status(401).json({ error: "Authentication required" });
+  const ticketId = Number(req.params.id);
+  if (!Number.isSafeInteger(ticketId) || ticketId <= 0) {
+    return res.status(400).json({ error: "Invalid ticket ID" });
+  }
+
+  try {
+    const ticket = await prisma.ticket.findUnique({
+      where: { id: ticketId },
+      select: { authorId: true },
+    });
+    if (!ticket) return res.status(404).json({ error: "Ticket not found" });
+
+    // Authors can only fetch books for their own tickets
+    if (authReq.user.role === "AUTHOR") {
+      const user = await prisma.user.findUnique({
+        where: { id: authReq.user.id },
+        select: { authorId: true },
+      });
+      if (!user?.authorId || ticket.authorId !== user.authorId) {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+    }
+
+    const books = await prisma.book.findMany({
+      where: { authorId: ticket.authorId },
+      select: {
+        id: true,
+        bookId: true,
+        title: true,
+        isbn: true,
+        genre: true,
+        status: true,
+        mrp: true,
+        royaltyPending: true,
+        royaltyPaid: true,
+        lastRoyaltyPayoutDate: true,
+        totalCopiesSold: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return res.json({ books });
+  } catch (error) {
+    console.error("Failed to fetch author books:", error);
+    return res.status(500).json({ error: "Failed to fetch author books" });
   }
 });
 // Send a reply to a support ticket.

@@ -45,6 +45,7 @@ type BackendTicket = {
     phone?: string | null;
     city?: string | null;
     joinedDate?: string | null;
+    _count?: { books: number };
     books?: AuthorBookSummary[];
   };
   book: { id: number; title: string } | null;
@@ -120,6 +121,7 @@ const mapTicket = (ticket: BackendTicket): TicketDetail => ({
     phone: ticket.author.phone,
     city: ticket.author.city,
     joinedDate: ticket.author.joinedDate,
+    totalBooks: ticket.author._count?.books ?? (ticket.author.books ? ticket.author.books.length : 0),
     books: ticket.author.books ?? [],
   },
   statusAudits: ticket.statusAudits,
@@ -350,6 +352,10 @@ export const api = {
   async notes(id: number): Promise<InternalNote[]> {
     const result = await request<{ notes: Array<{ id: number; content: string; createdAt: string; admin: { email: string; author: { name: string } | null } }> }>(`/tickets/${id}/notes`);
     return result.notes.map((note) => ({ id: note.id, body: note.content, createdAt: note.createdAt, adminName: note.admin.author?.name ?? note.admin.email }));
+  },
+  async authorBooks(id: number): Promise<AuthorBookSummary[]> {
+    const result = await request<{ books: AuthorBookSummary[] }>(`/tickets/${id}/author-books`);
+    return result.books;
   },
   async addNote(id: number, body: string) {
     await request(`/tickets/${id}/notes`, { method: "POST", body: JSON.stringify({ content: body }) });
