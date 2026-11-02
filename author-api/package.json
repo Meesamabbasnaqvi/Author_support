@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon --exec tsx src/server.ts",
     "start": "tsx src/server.ts",
-    "build": "tsc",
+    "build": "prisma generate",
     "typecheck": "tsc --noEmit",
     "seed": "tsx src/scripts/seed.ts",
     "worker": "tsx src/scripts/run-worker.ts",
@@ -40,7 +40,9 @@
     "multer": "^2.5.0",
     "nodemailer": "^10.3.1",
     "pg": "^8.23.1",
+    "prisma": "^7.10.1",
     "resend": "^6.35.0",
+    "tsx": "^4.23.15",
     "zod": "^4.6.7"
   },
   "devDependencies": {
@@ -52,8 +54,6 @@
     "@types/node": "^26.6.5",
     "@types/pg": "^8.23.1",
     "nodemon": "^3.1.14",
-    "prisma": "^7.10.1",
-    "tsx": "^4.23.15",
     "typescript": "^7.0.2"
   }
 }
