@@ -1,4 +1,10 @@
-import "dotenv/config";
+import dotenv from "dotenv";
+import path from "node:path";
+
+dotenv.config();
+dotenv.config({ path: path.resolve(process.cwd(), "../.env") });
+dotenv.config({ path: "/etc/secrets/.env" });
+
 import express from "express";
 import { randomUUID } from "node:crypto";
 import helmet from "helmet";
