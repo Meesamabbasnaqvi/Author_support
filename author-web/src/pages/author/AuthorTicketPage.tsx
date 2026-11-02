@@ -110,25 +110,16 @@ export default function AuthorTicketPage() {
       </ol>
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_260px]">
-        {/* Left Column: Sticky Chat Pane */}
-        <div className="flex flex-col min-h-[480px] lg:sticky lg:top-6 lg:h-[calc(100vh-3.5rem)]">
-          <div className="card flex flex-1 flex-col min-h-0 overflow-hidden shadow-xs">
-            <div className="flex items-center justify-between border-b border-line px-5 py-3.5 bg-surface/80 shrink-0">
-              <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" aria-hidden />
-                <h2 className="text-sm font-semibold text-ink">Conversation</h2>
-              </div>
-              <span className="text-xs text-muted">
-                {t.messages?.length ?? 0} {t.messages?.length === 1 ? "message" : "messages"}
-              </span>
-            </div>
-            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+        {/* Left Column: Conversation Thread & Sticky Input Bar */}
+        <div className="flex flex-col min-h-[calc(100vh-14rem)]">
+          <div className="flex-1 space-y-6">
+            <Card>
               <Thread messages={t.messages} viewer="AUTHOR" authorName={me.name} />
-              {q.isError && <ErrorBox message="Live updates have paused. Refresh the page to see the latest." />}
-            </div>
+            </Card>
+            {q.isError && <ErrorBox message="Live updates have paused. Refresh the page to see the latest." />}
           </div>
 
-          <div className="sticky bottom-4 lg:static mt-3.5 shrink-0">
+          <div className="sticky bottom-4 z-20 mt-4 pt-2 pb-1 bg-gradient-to-t from-canvas via-canvas/90 to-transparent">
             {/* Selected file preview pill */}
             {file && (
               <div className="mb-2 flex items-center gap-2 rounded-xl bg-surface border border-border px-3 py-1.5 text-xs text-ink w-fit shadow-xs">

@@ -60,7 +60,7 @@ export function ReplyComposer({ ticketId, draft, draftLoading, locked }: Props) 
   const canSubmit = body.trim().length > 0 && !hasUnresolvedPlaceholder && !send.isPending && !locked;
 
   return (
-    <div className="sticky bottom-4 xl:static mt-3.5 shrink-0">
+    <div className="sticky bottom-4 z-20 mt-4 pt-2 pb-1 bg-gradient-to-t from-canvas via-canvas/90 to-transparent">
       {draftLoading && (
         <p className="mb-1.5 flex items-center gap-1.5 text-xs text-muted animate-pulse">
           <Sparkles className="h-3 w-3 text-accent" aria-hidden /> Drafting reply…
@@ -88,7 +88,7 @@ export function ReplyComposer({ ticketId, draft, draftLoading, locked }: Props) 
           id="admin-reply"
           rows={1}
           className="flex-1 resize-none border-0 bg-transparent px-3 py-2 text-[15px] text-ink placeholder:text-muted focus:outline-none max-h-56 leading-relaxed"
-          placeholder={locked ? "This ticket is closed, so replies are turned off." : "Type a messageâ€¦ (Press Enter to send)"}
+          placeholder={locked ? "This ticket is closed, so replies are turned off." : "Type a message… (Press Enter to send)"}
           value={body}
           disabled={locked}
           onChange={(e) => {
