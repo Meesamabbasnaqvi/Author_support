@@ -178,7 +178,7 @@ async function main() {
         bookCount++;
       }
     }
-  });
+  }, { timeout: 30000, maxWait: 10000 });
 
   console.log(`Import completed: ${dataset.authors.length} authors processed.`);
   console.log(`Books processed: ${bookCount}.`);
