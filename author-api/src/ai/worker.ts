@@ -89,54 +89,57 @@ export async function claimBatch(batchSize = 5): Promise<ClaimedTicket[]> {
   const leaseToken = randomUUID();
   const leaseExpiresAt = new Date(Date.now() + LEASE_DURATION_MS);
 
-  return await prisma.$transaction(async (tx) => {
-    const candidates = await tx.$queryRaw<Array<{ id: number }>>`
-      SELECT id
-      FROM "Ticket"
-      WHERE "aiStatus" = 'PENDING'
-        AND ("aiNextAttemptAt" IS NULL OR "aiNextAttemptAt" <= NOW())
-        AND ("aiLeaseExpiresAt" IS NULL OR "aiLeaseExpiresAt" <= NOW())
-      ORDER BY "createdAt" ASC
-      LIMIT ${batchSize}
-      FOR UPDATE SKIP LOCKED
-    `;
+  return await prisma.$transaction(
+    async (tx) => {
+      const candidates = await tx.$queryRaw<Array<{ id: number }>>`
+        SELECT id
+        FROM "Ticket"
+        WHERE "aiStatus" = 'PENDING'
+          AND ("aiNextAttemptAt" IS NULL OR "aiNextAttemptAt" <= NOW())
+          AND ("aiLeaseExpiresAt" IS NULL OR "aiLeaseExpiresAt" <= NOW())
+        ORDER BY "createdAt" ASC
+        LIMIT ${batchSize}
+        FOR UPDATE SKIP LOCKED
+      `;
 
-    if (candidates.length === 0) {
-      return [];
-    }
+      if (candidates.length === 0) {
+        return [];
+      }
 
-    const ids = candidates.map((c) => c.id);
+      const ids = candidates.map((c) => c.id);
 
-    await tx.ticket.updateMany({
-      where: { id: { in: ids } },
-      data: {
-        aiLeaseToken: leaseToken,
-        aiLeaseExpiresAt: leaseExpiresAt,
-        aiAttempts: { increment: 1 },
-      },
-    });
+      await tx.ticket.updateMany({
+        where: { id: { in: ids } },
+        data: {
+          aiLeaseToken: leaseToken,
+          aiLeaseExpiresAt: leaseExpiresAt,
+          aiAttempts: { increment: 1 },
+        },
+      });
 
-    const claimed = await tx.ticket.findMany({
-      where: { id: { in: ids } },
-      select: {
-        id: true,
-        subject: true,
-        description: true,
-        aiAttempts: true,
-        book: { select: { title: true, status: true } },
-      },
-    });
+      const claimed = await tx.ticket.findMany({
+        where: { id: { in: ids } },
+        select: {
+          id: true,
+          subject: true,
+          description: true,
+          aiAttempts: true,
+          book: { select: { title: true, status: true } },
+        },
+      });
 
-    return claimed.map((t) => ({
-      id: t.id,
-      subject: t.subject,
-      description: t.description,
-      bookTitle: t.book?.title ?? null,
-      bookStatus: t.book?.status ?? null,
-      leaseToken,
-      attempts: t.aiAttempts,
-    }));
-  });
+      return claimed.map((t) => ({
+        id: t.id,
+        subject: t.subject,
+        description: t.description,
+        bookTitle: t.book?.title ?? null,
+        bookStatus: t.book?.status ?? null,
+        leaseToken,
+        attempts: t.aiAttempts,
+      }));
+    },
+    { maxWait: 10000, timeout: 20000 }
+  );
 }
 
 /**

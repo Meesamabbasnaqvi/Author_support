@@ -50,7 +50,7 @@ export class FakeClient implements LlmClient {
       };
     }
 
-    if (lower.includes("print") || lower.includes("blurry") || lower.includes("binding") || lower.includes("defective")) {
+    if (lower.includes("print") || lower.includes("blurry") || lower.includes("binding") || lower.includes("defective") || lower.includes("damaged") || lower.includes("torn")) {
       return {
         category: "PRINTING_QUALITY",
         priority: "MEDIUM",
@@ -90,13 +90,47 @@ export class FakeClient implements LlmClient {
   }
 
   async draft(
-    _prompt: string,
+    prompt: string,
     _options?: LlmCallOptions
   ): Promise<DraftResult> {
     if (this.cannedDraft) {
       const res = this.cannedDraft;
       this.cannedDraft = null;
       return res;
+    }
+
+    const lower = prompt.toLowerCase();
+    const isUnspecified =
+      lower.includes("not specified by author") ||
+      lower.includes("book unspecified") ||
+      lower.includes("critical instruction - book unspecified");
+    const isDamaged =
+      lower.includes("damaged") ||
+      lower.includes("defective") ||
+      lower.includes("printing_quality");
+
+    if (isUnspecified && isDamaged) {
+      return {
+        body: "Hi,\n\nThank you for reaching out to BookLeaf Support. I am very sorry to hear that your book arrived in damaged condition—we want to make this right immediately.\n\nCould you please let us know which book this is regarding? Additionally, please reply with a few clear photos showing the damage (including the cover, binding, and packaging box) so our production team can verify and dispatch a free replacement for you right away.\n\nWarm regards,\nBookLeaf Support",
+        placeholders: [],
+        factsUsed: [{ label: "Issue", value: "Damaged Book Replacement (Unspecified Title)" }],
+      };
+    }
+
+    if (isDamaged) {
+      return {
+        body: "Hi,\n\nThank you for reaching out to BookLeaf Support. I am very sorry to hear that your copy arrived damaged.\n\nCould you please share a few clear photos of the damaged areas along with the packaging box? Once verified, we will arrange a complimentary replacement copy for you right away.\n\nWarm regards,\nBookLeaf Support",
+        placeholders: [],
+        factsUsed: [{ label: "Issue", value: "Damaged Book Replacement" }],
+      };
+    }
+
+    if (isUnspecified) {
+      return {
+        body: "Hi,\n\nThank you for reaching out to BookLeaf Publishing. We would be happy to help with your inquiry.\n\nTo assist you as quickly as possible, could you please confirm which book title you are referring to? Once confirmed, our team will review the details and assist you promptly.\n\nWarm regards,\nBookLeaf Support",
+        placeholders: [],
+        factsUsed: [{ label: "Status", value: "Awaiting Book Title Confirmation" }],
+      };
     }
 
     return {

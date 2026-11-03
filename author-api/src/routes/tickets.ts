@@ -1294,6 +1294,12 @@ router.post("/:id/draft", requireAuth, requireAdmin, async (req, res) => {
 
     const startTime = Date.now();
 
+    const authorText = [
+      ticket.subject,
+      ticket.description,
+      ...ticket.messages.filter((m) => !m.isAdmin).map((m) => m.content),
+    ].join(" ");
+
     let book = ticket.book;
     let authorBooks: Array<{
       id: number;
@@ -1326,21 +1332,26 @@ router.post("/:id/draft", requireAuth, requireAdmin, async (req, res) => {
       });
 
       if (authorBooks.length > 0) {
-        const textToSearch = [
-          ticket.subject,
-          ticket.description,
-          ...ticket.messages.map((m) => m.content),
-        ].join(" ").toLowerCase();
+        const textToSearch = authorText.toLowerCase();
 
         // 1. Check if the author named one of their books in the message
         const matched = authorBooks.find((b) => textToSearch.includes(b.title.toLowerCase()));
 
-        // 2. If inquiring about payments, prioritize book with pending royalty
-        const withPending = authorBooks.find((b) => Number(b.royaltyPending || 0) > 0);
-
-        book = matched || (ticket.category === "ROYALTY_PAYMENTS" && withPending ? withPending : authorBooks[0]!);
+        if (matched) {
+          book = matched;
+        } else if (ticket.category === "ROYALTY_PAYMENTS") {
+          // If inquiring about royalties and only 1 book has pending royalties, prioritize it
+          const withPending = authorBooks.filter((b) => Number(b.royaltyPending || 0) > 0);
+          if (withPending.length === 1) {
+            book = withPending[0]!;
+          }
+        }
+        // Notice: If the author did not name their book and ticket wasn't linked to one,
+        // do NOT guess or assign a random book name!
       }
     }
+
+    const isBookUnspecified = !book;
 
     // Prepare verified server facts
     const overdueDays = book ? getRoyaltyOverdueDays(book) : 0;
@@ -1351,25 +1362,51 @@ router.post("/:id/draft", requireAuth, requireAdmin, async (req, res) => {
     const serverFacts: Array<{ label: string; value: string }> = [
       { label: "Ticket ID", value: `#${ticket.id}` },
       { label: "Author Name", value: ticket.author.name },
-      { label: "Book Title", value: book?.title ?? "General Account" },
-      { label: "Book Status", value: book?.status ?? "N/A" },
-      { label: "ISBN", value: book?.isbn ?? "N/A" },
-      { label: "Royalty Pending", value: `₹${pendingAmount.toFixed(2)}` },
-      { label: "Royalty Paid", value: `₹${paidAmount.toFixed(2)}` },
-      { label: "Payout Overdue", value: isOverdue ? `Yes (${overdueDays} days)` : "No" },
+      { label: "Book Title", value: book ? book.title : "Not specified by author" },
     ];
 
-    if (authorBooks.length > 1) {
+    if (book) {
+      serverFacts.push(
+        { label: "Book Status", value: book.status ?? "N/A" },
+        { label: "ISBN", value: book.isbn ?? "N/A" },
+        { label: "Royalty Pending", value: `₹${pendingAmount.toFixed(2)}` },
+        { label: "Royalty Paid", value: `₹${paidAmount.toFixed(2)}` },
+        { label: "Payout Overdue", value: isOverdue ? `Yes (${overdueDays} days)` : "No" }
+      );
+      if (book.lastRoyaltyPayoutDate) {
+        serverFacts.push({
+          label: "Last Payout Date",
+          value: new Date(book.lastRoyaltyPayoutDate).toISOString().split("T")[0]!,
+        });
+      }
+    }
+
+    if (authorBooks.length > 0) {
       serverFacts.push({
-        label: "Other Books by Author",
-        value: authorBooks.filter((b) => b.id !== book?.id).map((b) => `"${b.title}" (ISBN: ${b.isbn ?? "N/A"})`).join(", "),
+        label: "Author Books on Record",
+        value: authorBooks.map((b) => `"${b.title}" (ISBN: ${b.isbn ?? "N/A"})`).join(", "),
       });
     }
 
-    if (book?.lastRoyaltyPayoutDate) {
+    if (isBookUnspecified) {
+      const isDamagedOrQuality =
+        ticket.category === "PRINTING_QUALITY" ||
+        authorText.toLowerCase().includes("damaged") ||
+        authorText.toLowerCase().includes("defect") ||
+        authorText.toLowerCase().includes("print") ||
+        authorText.toLowerCase().includes("condition");
+
       serverFacts.push({
-        label: "Last Payout Date",
-        value: new Date(book.lastRoyaltyPayoutDate).toISOString().split("T")[0]!,
+        label: "CRITICAL INSTRUCTION - BOOK UNSPECIFIED",
+        value:
+          "The author did NOT state which book this inquiry is about. DO NOT guess, invent, or assume any book title. " +
+          "Your draft reply MUST politely ask the author to clarify which book they are referring to" +
+          (authorBooks.length > 0
+            ? ` (you may mention the book titles on their account: ${authorBooks.map((b) => `"${b.title}"`).join(", ")})`
+            : "") +
+          (isDamagedOrQuality
+            ? ". In addition, apologize sincerely for the damaged/defective condition and ask them to reply with clear photos of the damaged book (cover, binding, pages) and packaging so our team can verify and arrange a free replacement."
+            : "."),
       });
     }
 
@@ -1381,12 +1418,6 @@ router.post("/:id/draft", requireAuth, requireAdmin, async (req, res) => {
       content: m.content,
       createdAt: m.createdAt.toISOString(),
     }));
-
-    const authorText = [
-      ticket.subject,
-      ticket.description,
-      ...ticket.messages.filter((m) => !m.isAdmin).map((m) => m.content),
-    ].join(" ");
 
     const prompt = buildDraftPrompt({
       category: ticket.category,

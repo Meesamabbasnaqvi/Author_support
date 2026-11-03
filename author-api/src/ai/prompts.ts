@@ -101,6 +101,10 @@ STRICT DRAFTING RULES:
 4. If a necessary fact (e.g. payout date or reprint tracking) is not in the facts, do not invent it. Write an explicit admin placeholder in the exact format: [ADMIN: <action required>] (e.g. "[ADMIN: verify bank account status in dashboard]").
 5. End with a clear next step for the author, the BookLeaf team, or both.
 6. Sign off professionally: "Warm regards,\nBookLeaf Support".
+7. If "Book Title" is "Not specified by author" or the author did not name their book in the conversation:
+   - NEVER invent, guess, or assume any book title.
+   - You MUST politely ask the author to clarify which book they are referring to (you may list the titles from "Author Books on Record" if available).
+   - If the author reports a damaged, defective, or misprinted book, apologize sincerely for the condition and ask them to reply with clear photos of the damaged book (cover, binding, pages) and packaging so BookLeaf can verify and arrange a free replacement.
 
 OUTPUT FORMAT:
 Return a valid JSON object only with these exact keys:
