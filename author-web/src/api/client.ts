@@ -1,5 +1,5 @@
 import type {
-  AiDraft, AttachmentItem, AuthorBookSummary, AuthorSummary, Book, Category, InternalNote, Me, Priority,
+  AiDraft, AttachmentItem, AuthorBookSummary, AuthorProfile, AuthorSummary, Book, Category, InternalNote, Me, Priority,
   TicketDetail, TicketListItem, TicketStatus,
 } from "./types";
 
@@ -28,7 +28,7 @@ export interface DashboardCounts {
   unassigned: number;
 }
 
-type BackendUser = { id: number; email: string; role: "AUTHOR" | "ADMIN"; authorId?: number; name?: string };
+type BackendUser = { id: number; email: string; role: "AUTHOR" | "ADMIN"; authorId?: number; name?: string; phone?: string | null; city?: string | null };
 type BackendTicket = {
   id: number; subject: string; description: string; status: TicketStatus;
   category: Category; categorySource: "DEFAULT" | "AI" | "ADMIN";
@@ -103,6 +103,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
 const mapUser = (user: BackendUser): Me => ({
   id: user.id, email: user.email, role: user.role, authorId: user.authorId, name: user.name ?? user.email,
+  phone: user.phone, city: user.city,
 });
 
 const mapTicket = (ticket: BackendTicket): TicketDetail => ({
@@ -218,11 +219,25 @@ export const api = {
     }
   },
   async authorSummary(): Promise<AuthorSummary> {
-    const result = await request<{ author: { authorId: string; name: string; email: string }; books: Array<{ royaltyPending: string | number }> }>("/author/dashboard");
+    const result = await request<{ author: { authorId: string; name: string; email: string; phone?: string | null; city?: string | null }; books: Array<{ royaltyPending: string | number }> }>("/author/dashboard");
     return {
-      id: 0, name: result.author.name, email: result.author.email,
+      id: 0, name: result.author.name, email: result.author.email, phone: result.author.phone, city: result.author.city,
       royaltyPendingTotal: result.books.reduce((total, book) => total + Number(book.royaltyPending), 0),
       nextPayoutDeadline: new Date().toISOString(), minimumPayout: 1000,
+    };
+  },
+  async getProfile(): Promise<AuthorProfile> {
+    const result = await request<{ author: AuthorProfile }>("/author/profile");
+    return result.author;
+  },
+  async updateProfile(patch: { name?: string; phone?: string | null; city?: string | null }): Promise<{ author: AuthorProfile; user: Me }> {
+    const result = await request<{ author: AuthorProfile; user: BackendUser }>("/author/profile", {
+      method: "PATCH",
+      body: JSON.stringify(patch),
+    });
+    return {
+      author: result.author,
+      user: mapUser(result.user),
     };
   },
   async books(): Promise<Book[]> {

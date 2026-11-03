@@ -151,7 +151,7 @@ router.post("/login", authLimiter, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { email },
-      include: { author: { select: { name: true } } },
+      include: { author: { select: { name: true, phone: true, city: true } } },
     });
 
     if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
@@ -178,6 +178,8 @@ router.post("/login", authLimiter, async (req, res) => {
         role: user.role,
         authorId: user.authorId ?? undefined,
         name: user.author?.name ?? user.email,
+        phone: user.author?.phone ?? null,
+        city: user.author?.city ?? null,
       },
     });
   } catch (error) {

@@ -11,6 +11,7 @@ import MyBooksPage from "./pages/author/MyBooksPage";
 import MyTicketsPage from "./pages/author/MyTicketsPage";
 import NewTicketPage from "./pages/author/NewTicketPage";
 import AuthorTicketPage from "./pages/author/AuthorTicketPage";
+import ProfilePage from "./pages/author/ProfilePage";
 import DashboardPage from "./pages/admin/DashboardPage";
 import QueuePage from "./pages/admin/QueuePage";
 import AdminTicketPage from "./pages/admin/AdminTicketPage";
@@ -39,6 +40,7 @@ export default function App() {
 
       <Route path="/home" element={<Guard role="AUTHOR"><HomePage /></Guard>} />
       <Route path="/books" element={<Guard role="AUTHOR"><MyBooksPage /></Guard>} />
+      <Route path="/profile" element={<Guard role="AUTHOR"><ProfilePage /></Guard>} />
       <Route path="/tickets" element={<Guard role="AUTHOR"><MyTicketsPage /></Guard>} />
       <Route path="/tickets/new" element={<Guard role="AUTHOR"><NewTicketPage /></Guard>} />
       <Route path="/tickets/:id" element={<Guard role="AUTHOR"><AuthorTicketPage /></Guard>} />

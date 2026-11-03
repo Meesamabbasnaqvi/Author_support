@@ -9,6 +9,7 @@ interface AuthValue {
   signIn: (email: string, password: string, role: Role) => Promise<Me>;
   signUp: (name: string, email: string, password: string) => Promise<Me>;
   signOut: () => Promise<void>;
+  updateMe: (user: Me) => void;
 }
 
 const AuthContext = createContext<AuthValue | null>(null);
@@ -39,6 +40,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await api.signOut();
       setLocal(null);
       qc.clear();
+    },
+    updateMe: (user: Me) => {
+      setLocal(user);
+      qc.setQueryData(["me"], user);
+      qc.invalidateQueries({ queryKey: ["author-summary"] });
+      qc.invalidateQueries({ queryKey: ["author-profile"] });
     },
   };
 
