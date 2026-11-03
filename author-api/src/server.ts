@@ -178,6 +178,8 @@ app.get("/author/dashboard", requireAuth, async (req, res) => {
         authorId: user.author.authorId,
         name: user.author.name,
         email: user.author.email,
+        phone: user.author.phone,
+        city: user.author.city,
       },
       books: user.author.books,
     });
@@ -187,6 +189,132 @@ app.get("/author/dashboard", requireAuth, async (req, res) => {
     return res.status(500).json({
       error: "Failed to fetch author dashboard",
     });
+  }
+});
+
+// Get the authenticated author's full profile
+app.get("/author/profile", requireAuth, async (req, res) => {
+  const authReq = req as AuthenticatedRequest;
+  if (!authReq.user) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: authReq.user.id },
+      include: {
+        author: {
+          include: {
+            _count: { select: { books: true, tickets: true } },
+          },
+        },
+      },
+    });
+
+    if (!user || !user.authorId || !user.author) {
+      return res.status(404).json({ error: "No author profile is linked to this account" });
+    }
+
+    return res.json({
+      author: {
+        id: user.author.id,
+        authorId: user.author.authorId,
+        name: user.author.name,
+        email: user.author.email,
+        phone: user.author.phone,
+        city: user.author.city,
+        joinedDate: user.author.joinedDate,
+        totalBooks: user.author._count.books,
+        totalTickets: user.author._count.tickets,
+      },
+    });
+  } catch (error) {
+    console.error("Failed to fetch author profile:", error);
+    return res.status(500).json({ error: "Failed to fetch profile" });
+  }
+});
+
+// Update the authenticated author's profile (name, contact phone, city)
+app.patch("/author/profile", requireAuth, async (req, res) => {
+  const authReq = req as AuthenticatedRequest;
+  if (!authReq.user) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: authReq.user.id },
+      include: {
+        author: {
+          include: {
+            _count: { select: { books: true, tickets: true } },
+          },
+        },
+      },
+    });
+
+    if (!user || !user.authorId || !user.author) {
+      return res.status(404).json({ error: "No author profile is linked to this account" });
+    }
+
+    const { name, phone, city } = req.body;
+
+    if (name !== undefined) {
+      if (typeof name !== "string" || name.trim().length < 2 || name.trim().length > 100) {
+        return res.status(400).json({ error: "Name must be between 2 and 100 characters" });
+      }
+    }
+
+    if (phone !== undefined && phone !== null && phone !== "") {
+      if (typeof phone !== "string" || phone.trim().length > 30) {
+        return res.status(400).json({ error: "Phone number cannot exceed 30 characters" });
+      }
+    }
+
+    if (city !== undefined && city !== null && city !== "") {
+      if (typeof city !== "string" || city.trim().length > 100) {
+        return res.status(400).json({ error: "City cannot exceed 100 characters" });
+      }
+    }
+
+    const updatedAuthor = await prisma.author.update({
+      where: { id: user.authorId },
+      data: {
+        ...(name !== undefined ? { name: name.trim() } : {}),
+        ...(phone !== undefined ? { phone: phone ? phone.trim() : null } : {}),
+        ...(city !== undefined ? { city: city ? city.trim() : null } : {}),
+      },
+      include: {
+        _count: { select: { books: true, tickets: true } },
+      },
+    });
+
+    return res.json({
+      message: "Profile updated successfully",
+      author: {
+        id: updatedAuthor.id,
+        authorId: updatedAuthor.authorId,
+        name: updatedAuthor.name,
+        email: updatedAuthor.email,
+        phone: updatedAuthor.phone,
+        city: updatedAuthor.city,
+        joinedDate: updatedAuthor.joinedDate,
+        totalBooks: updatedAuthor._count.books,
+        totalTickets: updatedAuthor._count.tickets,
+      },
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        authorId: user.authorId,
+        name: updatedAuthor.name,
+        phone: updatedAuthor.phone,
+        city: updatedAuthor.city,
+      },
+    });
+  } catch (error) {
+    console.error("Failed to update author profile:", error);
+    return res.status(500).json({ error: "Failed to update profile" });
   }
 });
 
@@ -202,7 +330,7 @@ app.get("/auth/me", requireAuth, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: authReq.user.id },
-      include: { author: { select: { name: true } } },
+      include: { author: { select: { name: true, phone: true, city: true } } },
     });
     if (!user) return res.status(401).json({ error: "User account no longer exists" });
     return res.json({
@@ -212,6 +340,8 @@ app.get("/auth/me", requireAuth, async (req, res) => {
         role: user.role,
         authorId: user.authorId ?? undefined,
         name: user.author?.name ?? user.email,
+        phone: user.author?.phone ?? null,
+        city: user.author?.city ?? null,
       },
     });
   } catch (error) {

@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BookOpen, CheckCircle2, ChevronsUpDown, Gauge, Home, Inbox, KeyRound, Lock, LogOut, MessageSquarePlus, Send, Ticket, X } from "lucide-react";
+import { BookOpen, CheckCircle2, ChevronsUpDown, Gauge, Home, Inbox, KeyRound, Lock, LogOut, MessageSquarePlus, Send, Ticket, User } from "lucide-react";
 import { api } from "../api/client";
 import { useAuth } from "../lib/auth";
 import { initials, timeAgo } from "../lib/labels";
 import { Avatar } from "./ui";
+import { EditProfileDialog } from "./EditProfileDialog";
+import { ChangePasswordDialog } from "./ChangePasswordDialog";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { me } = useAuth();
@@ -61,6 +63,7 @@ function Sidebar() {
             <NavGroup label="Your account">
               <NavItem to="/home" icon={Home} end>Home</NavItem>
               <NavItem to="/books" icon={BookOpen}>My books</NavItem>
+              <NavItem to="/profile" icon={User}>Profile</NavItem>
             </NavGroup>
             <NavGroup label="Support">
               <NavItem to="/tickets" icon={Ticket} count={replies || undefined} countTone="accent">My tickets</NavItem>
@@ -127,6 +130,7 @@ function ProfileMenu() {
   const { me, signOut } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [showEditProfile, setShowEditProfile] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
 
@@ -163,6 +167,16 @@ function ProfileMenu() {
               {me.role === "ADMIN" ? "Support admin" : "Author"}
             </p>
           </div>
+          {me.role === "AUTHOR" && (
+            <button
+              role="menuitem"
+              type="button"
+              onClick={() => { setOpen(false); setShowEditProfile(true); }}
+              className="flex w-full items-center gap-2 border-b border-line px-4 py-2.5 text-left text-sm text-ink hover:bg-canvas"
+            >
+              <User className="h-4 w-4 text-muted" aria-hidden /> Edit profile
+            </button>
+          )}
           <button
             role="menuitem"
             type="button"
@@ -180,6 +194,10 @@ function ProfileMenu() {
             <LogOut className="h-4 w-4 text-muted" aria-hidden /> Sign out
           </button>
         </div>
+      )}
+
+      {showEditProfile && (
+        <EditProfileDialog onClose={() => setShowEditProfile(false)} />
       )}
 
       {showChangePassword && (
@@ -200,107 +218,6 @@ function ProfileMenu() {
         </span>
         <ChevronsUpDown className="h-4 w-4 text-subtle" aria-hidden />
       </button>
-    </div>
-  );
-}
-
-function ChangePasswordDialog({ onClose }: { onClose: () => void }) {
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    if (newPassword.length < 8) {
-      setError("New password must be at least 8 characters.");
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setError("New passwords do not match.");
-      return;
-    }
-
-    setBusy(true);
-    try {
-      const res = await api.changePassword(currentPassword, newPassword);
-      setSuccess(res.message);
-      setTimeout(() => onClose(), 1800);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to update password.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-sm rounded-xl border border-line bg-surface p-6 shadow-xl">
-        <div className="flex items-center justify-between border-b border-line pb-3">
-          <h3 className="text-lg font-semibold">Change password</h3>
-          <button type="button" onClick={onClose} className="rounded p-1 text-muted hover:text-ink">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        {success ? (
-          <div className="py-6 text-center">
-            <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-600" />
-            <p className="mt-3 text-sm font-medium text-emerald-800">{success}</p>
-          </div>
-        ) : (
-          <form onSubmit={onSubmit} className="mt-4 space-y-3.5">
-            {error && (
-              <p className="rounded-lg border border-critical/30 bg-red-50 px-3 py-2 text-xs text-critical">
-                {error}
-              </p>
-            )}
-            <div>
-              <label className="mb-1 block text-xs font-medium text-muted">Current password</label>
-              <input
-                type="password"
-                required
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                className="field"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-muted">New password</label>
-              <input
-                type="password"
-                required
-                minLength={8}
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="field"
-              />
-              <span className="text-[11px] text-muted">At least 8 characters</span>
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-muted">Confirm new password</label>
-              <input
-                type="password"
-                required
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="field"
-              />
-            </div>
-            <div className="mt-6 flex justify-end gap-2 pt-2">
-              <button type="button" onClick={onClose} className="btn-secondary" disabled={busy}>
-                Cancel
-              </button>
-              <button type="submit" className="btn-primary" disabled={busy}>
-                {busy ? "Updating…" : "Update password"}
-              </button>
-            </div>
-          </form>
-        )}
-      </div>
     </div>
   );
 }

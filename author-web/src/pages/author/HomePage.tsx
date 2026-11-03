@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, MessageSquarePlus } from "lucide-react";
+import { ArrowRight, Mail, MapPin, MessageSquarePlus, Phone, User } from "lucide-react";
 import { api } from "../../api/client";
 import { Card, EmptyState, ErrorBox, LoadingRows, StatusBadge } from "../../components/ui";
 import { useAuth } from "../../lib/auth";
@@ -28,6 +28,32 @@ export default function HomePage() {
           <MessageSquarePlus className="h-4 w-4" aria-hidden /> Raise a query
         </Link>
       </header>
+
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-surface px-5 py-3 text-xs">
+        <div className="flex flex-wrap items-center gap-4 text-muted">
+          <span className="font-medium text-ink flex items-center gap-1.5">
+            <User className="h-3.5 w-3.5 text-accent" /> {me?.name}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Mail className="h-3.5 w-3.5" /> {me?.email}
+          </span>
+          {me?.phone ? (
+            <span className="flex items-center gap-1.5">
+              <Phone className="h-3.5 w-3.5" /> {me.phone}
+            </span>
+          ) : (
+            <span className="text-muted/70 italic">No contact phone added</span>
+          )}
+          {me?.city && (
+            <span className="flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5" /> {me.city}
+            </span>
+          )}
+        </div>
+        <Link to="/profile" className="font-medium text-accent hover:underline flex items-center gap-1">
+          Profile & Contact <ArrowRight className="h-3 w-3" />
+        </Link>
+      </div>
 
       {summary.isError && <ErrorBox message="We could not load your royalty summary. It will retry automatically." />}
       {summary.data && (

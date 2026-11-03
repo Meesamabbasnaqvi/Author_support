@@ -8,6 +8,8 @@ export interface Me {
   email: string;
   role: Role;
   authorId?: number;
+  phone?: string | null;
+  city?: string | null;
 }
 
 // The brief defines exactly these four statuses.
@@ -44,10 +46,24 @@ export interface AuthorSummary {
   id: number;
   name: string;
   email: string;
+  phone?: string | null;
+  city?: string | null;
   royaltyPendingTotal: number;
   nextPayoutDeadline: string; // ISO date
   minimumPayout: number;
   bankDetailsStatus?: string;
+}
+
+export interface AuthorProfile {
+  id: number;
+  authorId: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  city: string | null;
+  joinedDate?: string | null;
+  totalBooks?: number;
+  totalTickets?: number;
 }
 
 export interface AttachmentItem {
