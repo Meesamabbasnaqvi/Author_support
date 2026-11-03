@@ -1,5 +1,5 @@
 import { Link, Navigate } from "react-router-dom";
-import { ArrowRight, Headphones, BookOpen } from "lucide-react";
+import { ArrowRight, Headphones, BookOpen, Heart } from "lucide-react";
 import { useAuth } from "../lib/auth";
 
 // The front door. Authors and the support team each have their own way in.
@@ -77,6 +77,25 @@ export default function LandingPage() {
           </div>
         </div>
       </main>
+
+      <footer className="mt-auto border-t border-border/60 px-6 py-6 text-xs text-muted">
+        <div className="mx-auto flex max-w-4xl flex-col items-center justify-between gap-3 text-center sm:flex-row sm:text-left">
+          <p>© {new Date().getFullYear()} BookLeaf Publishing. All rights reserved.</p>
+          <p className="flex items-center gap-1.5 text-muted">
+            <span>Made with</span>
+            <Heart className="h-3.5 w-3.5 fill-red-500 text-red-500 inline" aria-label="love" />
+            <span>by</span>
+            <a
+              href="https://github.com/Meesamabbasnaqvi"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-ink underline underline-offset-2 transition hover:text-accent"
+            >
+              Meesam Abbas Naqvi
+            </a>
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
